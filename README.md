@@ -24,11 +24,11 @@ pnpm dev:cpu
 
 The one-time setup requires internet access for Python packages. Afterwards, the application, DhVaani weights, and inference remain local and need no network connection. No GPU, CUDA, WebGPU, Bash, Unix path, or native compiler is required.
 
-## Browser support
+## Support
 
-Hindi offers Kokoro Alpha, Priyamvada/Piper, and DhVaani 0.5. English uses Kokoro Heart; Indian English can also use DhVaani. DhVaani covers the Indian languages listed in the application through an INT8 ONNX CPU service. The first generation takes longer while local models load.
-
-Generated WAV files begin with a configurable pause (0.45 seconds by default). Change it under **Tune → Initial pause**. Inside a script, use an ellipsis (`…`) for a short pause or end a sentence and add a blank line for a longer pause.
+- Hindi offers Kokoro Alpha, Priyamvada/Piper, and DhVaani 0.5.
+- English uses Kokoro Heart
+-  Indian English can also use DhVaani. DhVaani covers the Indian languages listed in the application through an INT8 ONNX CPU service. 
 
 ## Performance markup
 

@@ -1,4 +1,5 @@
 import './tailwind.css';
+import { copyForMode } from './localization.js';
 import { SpeechService } from './speech-service.js';
 import { DEFAULT_TTS_SETTINGS } from './tts-settings.js';
 import { renderApp } from './view.js';
@@ -96,34 +97,32 @@ const PAUSE_COPY = Object.freeze({
   hi: 'स्वाभाविक विराम: छोटे विराम के लिए … का उपयोग करें, या लंबे विराम के लिए वाक्य समाप्त करके एक खाली पंक्ति जोड़ें।',
 });
 
+/** Resolves dynamic English UI copy using the central Hindi dictionary. */
 function localizedText(english, mode) {
   const hindi =
     UI_COPY[english] ??
     (english.startsWith('Selection ')
       ? english.replace('Selection ', 'चुना अंश ')
       : undefined);
-  if (!hindi || mode === 'en') return english;
-  return mode === 'hi' ? hindi : `${english} · ${hindi}`;
+  return hindi ? copyForMode({ en: english, hi: hindi }, mode) : english;
 }
 
-function addLabelLanguageSetting(root, value) {
-  const controls = root.querySelector(
-    '#settings-dialog .grid.sm\\:grid-cols-2',
-  );
-  if (!controls) return;
-  const label = root.ownerDocument.createElement('label');
-  label.className =
-    'grid grid-cols-[1fr_auto] gap-2 rounded-md border border-[#dedcd9] bg-[#f7f7f6] p-3 text-xs font-medium sm:col-span-2';
-  label.append(root.ownerDocument.createTextNode('Label language'));
-  const select = root.ownerDocument.createElement('select');
-  select.className =
-    'col-span-2 mt-1 h-9 w-full rounded-md border border-stone-300 bg-white px-3 text-xs text-stone-900 outline-none';
-  select.dataset.uiLanguage = '';
-  select.innerHTML =
-    '<option value="en">English</option><option value="hi">हिंदी</option><option value="both">English + हिंदी</option>';
-  select.value = value;
-  label.append(select);
-  controls.prepend(label);
+/** Translates the small set of dynamic text-node formats produced by views. */
+function localizedNodeText(value, mode) {
+  if (UI_COPY[value]) return localizedText(value, mode);
+  if (/^\d+ characters$/.test(value)) {
+    const count = value.split(' ')[0];
+    return `${count} ${localizedText('characters', mode)}`;
+  }
+  if (value.endsWith(' / Conversation'))
+    return value.replace('Conversation', localizedText('Conversation', mode));
+  return value;
+}
+
+function localizeAttribute(element, attribute, mode) {
+  const english = element.getAttribute(attribute);
+  if (UI_COPY[english])
+    element.setAttribute(attribute, localizedText(english, mode));
 }
 
 /** Applies the saved English, Hindi, or bilingual label preference. */
@@ -134,32 +133,14 @@ function applyLabelLanguage(root, mode) {
   );
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
     const value = node.textContent.trim();
-    if (UI_COPY[value]) node.textContent = localizedText(value, mode);
-    else if (/^\d+ characters$/.test(value)) {
-      const count = value.split(' ')[0];
-      node.textContent = `${count} ${localizedText('characters', mode)}`;
-    } else if (value.endsWith(' / Conversation'))
-      node.textContent = value.replace(
-        'Conversation',
-        localizedText('Conversation', mode),
-      );
+    node.textContent = localizedNodeText(value, mode);
   }
-  for (const element of root.querySelectorAll('[aria-label], [title]')) {
-    for (const attribute of ['aria-label', 'title']) {
-      const english = element.getAttribute(attribute);
-      if (UI_COPY[english])
-        element.setAttribute(attribute, localizedText(english, mode));
-    }
-  }
+  for (const element of root.querySelectorAll('[aria-label]'))
+    localizeAttribute(element, 'aria-label', mode);
+  for (const element of root.querySelectorAll('[title]'))
+    localizeAttribute(element, 'title', mode);
   const pauseHelp = root.querySelector('[data-pause-help]');
-  if (pauseHelp) {
-    pauseHelp.textContent =
-      mode === 'en'
-        ? PAUSE_COPY.en
-        : mode === 'hi'
-          ? PAUSE_COPY.hi
-          : `${PAUSE_COPY.en} ${PAUSE_COPY.hi}`;
-  }
+  if (pauseHelp) pauseHelp.textContent = copyForMode(PAUSE_COPY, mode, ' ');
   for (const hint of root.querySelectorAll(
     '[data-setting] ~ *, [data-setting]',
   )) {
@@ -213,7 +194,6 @@ export class VaaniApp {
       voices,
       saveStatus: this.#saveStatus,
     });
-    addLabelLanguageSetting(this.root, this.store.state.uiLanguage);
     applyLabelLanguage(this.root, this.store.state.uiLanguage);
     this.#setStatus('');
     if (openSettings) this.root.querySelector('#settings-dialog')?.showModal();

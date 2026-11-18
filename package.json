@@ -3,19 +3,20 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "packageManager": "bun@1.4.4",
   "engines": {
-    "node": ">=22 <23"
+    "bun": ">=1.4.4"
   },
   "scripts": {
     "dev": "vite",
-    "dev:cpu": "node scripts/start-cpu.mjs",
-    "setup:cpu": "node scripts/setup-cpu.mjs",
+    "dev:cpu": "bun scripts/start-cpu.mjs",
+    "setup:cpu": "bun scripts/setup-cpu.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "lint": "eslint .",
     "format": "prettier --check .",
-    "check": "pnpm lint && pnpm format && pnpm test && pnpm build"
+    "check": "bun run lint && bun run format && bun run test && bun run build"
   },
   "devDependencies": {
     "@eslint/js": "9.39.1",
@@ -31,12 +32,5 @@
     "@huggingface/transformers": "^3.8.1",
     "kokoro-js": "^1.2.1",
     "wavesurfer.js": "^8.1.0"
-  },
-  "pnpm": {
-    "ignoredBuiltDependencies": [
-      "onnxruntime-node",
-      "protobufjs",
-      "sharp"
-    ]
   }
 }

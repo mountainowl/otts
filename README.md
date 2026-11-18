@@ -2,25 +2,32 @@
 
 An offline-first multilingual text-to-speech workspace. No text is sent to a remote service.
 
+![Vaani workspace with Hindi narration and CPU voice controls](docs/vaani-workspace.jpg)
+
 ## Run locally
 
 ```sh
-pnpm install --frozen-lockfile --config.strict-dep-builds=false
-pnpm setup:cpu
-pnpm dev:cpu
+bun install --frozen-lockfile
+bun run setup:cpu
+bun run dev:cpu
 ```
 
 Open the local URL shown by Vite (http://127.0.0.1:5176). The included Hindi validation file is at `public/audio/hindi-sample.wav`.
 
 ### Windows
 
-Install Node.js 22 and pnpm, then run the same commands in PowerShell or Windows Terminal:
+Install Bun 1.4.4 or newer, then run the same commands in PowerShell or Windows Terminal:
 
 ```powershell
-pnpm install --frozen-lockfile --config.strict-dep-builds=false
-pnpm setup:cpu
-pnpm dev:cpu
+bun install --frozen-lockfile
+bun run setup:cpu
+bun run dev:cpu
 ```
+
+Non-technical users can instead double-click `run.bat`. It installs the locked
+JavaScript dependencies when needed, prepares the local CPU service on first run,
+starts Vaani, and opens the workspace in the default browser. Bun and Python must
+already be installed.
 
 The one-time setup requires internet access for Python packages. Afterwards, the application, DhVaani weights, and inference remain local and need no network connection. No GPU, CUDA, WebGPU, Bash, Unix path, or native compiler is required.
 

@@ -7,6 +7,7 @@ const createId = () =>
   globalThis.crypto?.randomUUID?.() ??
   `local-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
+/** Creates the deterministic first-run workspace shown before user data exists. */
 export function createSeedWorkspace(now = new Date().toISOString()) {
   const projectId = createId();
   const conversationId = createId();
@@ -43,6 +44,7 @@ export function createSeedWorkspace(now = new Date().toISOString()) {
   };
 }
 
+/** Loads persisted state, falling back safely when storage is empty or corrupt. */
 export function loadWorkspace(storage = globalThis.localStorage) {
   try {
     const saved = storage?.getItem(STORAGE_KEY);
@@ -55,6 +57,7 @@ export function loadWorkspace(storage = globalThis.localStorage) {
   }
 }
 
+/** Persists the complete workspace as one device-local document. */
 export function saveWorkspace(workspace, storage = globalThis.localStorage) {
   storage?.setItem(STORAGE_KEY, JSON.stringify(workspace));
 }

@@ -3,6 +3,7 @@ import {
   parsePerformanceScript,
   settingsForPerformance,
 } from './performance-markup.js';
+import { WorkerClient } from './worker-client.js';
 
 export const HINDI_NEURAL_VOICE = Object.freeze({
   name: 'Priyamvada — Natural neural',
@@ -161,12 +162,8 @@ export function polishPcm(input, sampleRate, settings) {
  * ऑफ़लाइन स्पीच फ़साड: कॉलर को मॉडल, PCM और ऑडियो URL संभालना नहीं पड़ता।
  */
 export class SpeechService {
-  #kokoroWorker;
-  #kokoroRequests = new Map();
-  #kokoroRequestId = 0;
-  #piperWorker;
-  #piperRequests = new Map();
-  #piperRequestId = 0;
+  #kokoro;
+  #piper;
   #dhvaaniAbort;
   #activeUrl;
 
@@ -176,6 +173,19 @@ export class SpeechService {
   } = {}) {
     this.piper = piper;
     this.synthesis = synthesis;
+    this.#kokoro = new WorkerClient(
+      () =>
+        new Worker(new URL('./kokoro-worker.js', import.meta.url), {
+          type: 'module',
+        }),
+      ({ blob }) => blob,
+      'Kokoro speech worker is unavailable.',
+    );
+    this.#piper = new WorkerClient(
+      () => new Worker(new URL('./piper-worker.js', document.baseURI)),
+      ({ result }) => result,
+      'Neural speech worker is unavailable.',
+    );
   }
 
   get systemVoices() {
@@ -401,20 +411,8 @@ export class SpeechService {
     this.synthesis?.cancel?.();
     this.#dhvaaniAbort?.abort();
     this.#dhvaaniAbort = undefined;
-    if (this.#kokoroWorker && this.#kokoroRequests.size) {
-      this.#kokoroWorker.terminate();
-      this.#kokoroWorker = undefined;
-      for (const { reject } of this.#kokoroRequests.values())
-        reject(new DOMException('Speech generation stopped.', 'AbortError'));
-      this.#kokoroRequests.clear();
-    }
-    if (this.#piperWorker && this.#piperRequests.size) {
-      this.#piperWorker.terminate();
-      this.#piperWorker = undefined;
-      for (const { reject } of this.#piperRequests.values())
-        reject(new DOMException('Speech generation stopped.', 'AbortError'));
-      this.#piperRequests.clear();
-    }
+    this.#kokoro.stop();
+    this.#piper.stop();
     if (release && this.#activeUrl) {
       URL.revokeObjectURL(this.#activeUrl);
       this.#activeUrl = undefined;
@@ -422,62 +420,18 @@ export class SpeechService {
   }
 
   #generateKokoro(request) {
-    if (!this.#kokoroWorker) {
-      this.#kokoroWorker = new Worker(
-        new URL('./kokoro-worker.js', import.meta.url),
-        { type: 'module' },
-      );
-      this.#kokoroWorker.addEventListener('message', ({ data }) => {
-        const pending = this.#kokoroRequests.get(data.id);
-        if (!pending) return;
-        this.#kokoroRequests.delete(data.id);
-        if (data.error) pending.reject(new Error(data.error));
-        else pending.resolve(data.blob);
-      });
-      this.#kokoroWorker.addEventListener('error', (error) => {
-        for (const { reject } of this.#kokoroRequests.values()) reject(error);
-        this.#kokoroRequests.clear();
-      });
-    }
-    const id = ++this.#kokoroRequestId;
-    return new Promise((resolve, reject) => {
-      this.#kokoroRequests.set(id, { resolve, reject });
-      this.#kokoroWorker.postMessage({
-        id,
-        ...request,
-        paths: {
-          modelRoot: new URL('./models/', document.baseURI).href,
-          voiceRoot: new URL(`${KOKORO_ROOT}/voices`, document.baseURI).href,
-          wasmRoot: new URL(`${KOKORO_ROOT}/wasm/`, document.baseURI).href,
-        },
-      });
+    return this.#kokoro.request({
+      ...request,
+      paths: {
+        modelRoot: new URL('./models/', document.baseURI).href,
+        voiceRoot: new URL(`${KOKORO_ROOT}/voices`, document.baseURI).href,
+        wasmRoot: new URL(`${KOKORO_ROOT}/wasm/`, document.baseURI).href,
+      },
     });
   }
 
   #requestPiper(action, request) {
-    if (!globalThis.Worker)
-      return Promise.reject(new Error('Neural speech worker is unavailable.'));
-    if (!this.#piperWorker) {
-      this.#piperWorker = new Worker(
-        new URL('./piper-worker.js', document.baseURI),
-      );
-      this.#piperWorker.addEventListener('message', ({ data }) => {
-        const pending = this.#piperRequests.get(data.id);
-        if (!pending) return;
-        this.#piperRequests.delete(data.id);
-        if (data.error) pending.reject(new Error(data.error));
-        else pending.resolve(data.result);
-      });
-      this.#piperWorker.addEventListener('error', (error) => {
-        for (const { reject } of this.#piperRequests.values()) reject(error);
-        this.#piperRequests.clear();
-      });
-    }
-    const id = ++this.#piperRequestId;
-    return new Promise((resolve, reject) => {
-      this.#piperRequests.set(id, { resolve, reject });
-      this.#piperWorker.postMessage({ id, action, ...request });
-    });
+    return this.#piper.request({ action, ...request });
   }
 
   async #ready(blob, initialPause) {

@@ -1,6 +1,13 @@
 const PERFORMANCE_TAG =
   /\[((?:pause=\d{1,4}|calm|warm|reflective|energetic|emphasis=[^\],]+)(?:\s*,\s*(?:calm|warm|reflective|energetic|emphasis=[^\],]+))*)\]/giu;
 
+const STYLE_ADJUSTMENTS = Object.freeze({
+  calm: { speed: 0.9, expressiveness: 0.82, variation: 0.82 },
+  warm: { speed: 0.97, expressiveness: 1.14, variation: 1.05 },
+  reflective: { speed: 0.88, expressiveness: 1.08, variation: 1.18 },
+  energetic: { speed: 1.06, expressiveness: 1.22, variation: 1.16 },
+});
+
 /**
  * Splits a script into independently rendered performance segments.
  * पाठ को शैली और सटीक विराम वाले छोटे भागों में बाँटता है।
@@ -48,27 +55,18 @@ export function parsePerformanceScript(script) {
     : [{ text: script.trim(), pauseBeforeMs: 0, styles: [] }];
 }
 
-/** Maps only controls the active engines genuinely expose. */
+/**
+ * Maps performance tags only to controls the active engines genuinely expose.
+ * Unknown tags are intentionally ignored so parsing remains forward-compatible.
+ * केवल वास्तविक model controls बदले जाते हैं; cosmetic sliders नहीं जोड़े जाते।
+ */
 export function settingsForPerformance(settings, styles = []) {
   const next = { ...settings };
   for (const style of styles) {
-    if (style === 'calm') {
-      next.speed *= 0.9;
-      next.expressiveness *= 0.82;
-      next.variation *= 0.82;
-    } else if (style === 'warm') {
-      next.speed *= 0.97;
-      next.expressiveness *= 1.14;
-      next.variation *= 1.05;
-    } else if (style === 'reflective') {
-      next.speed *= 0.88;
-      next.expressiveness *= 1.08;
-      next.variation *= 1.18;
-    } else if (style === 'energetic') {
-      next.speed *= 1.06;
-      next.expressiveness *= 1.22;
-      next.variation *= 1.16;
-    }
+    const adjustment = STYLE_ADJUSTMENTS[style];
+    if (!adjustment) continue;
+    for (const [setting, multiplier] of Object.entries(adjustment))
+      next[setting] *= multiplier;
   }
   next.speed = clamp(next.speed, 0.7, 1.25);
   next.expressiveness = clamp(next.expressiveness, 0.2, 0.9);

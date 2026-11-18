@@ -3,6 +3,7 @@ import { KokoroTTS } from 'kokoro-js';
 
 let enginePromise;
 
+/** Loads the CPU/WASM engine once and primes its bundled voice cache. */
 async function getEngine({ modelRoot, wasmRoot, voiceRoot }) {
   enginePromise ??= (async () => {
     env.allowRemoteModels = false;

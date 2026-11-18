@@ -1,4 +1,3 @@
-import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -10,21 +9,38 @@ const python = resolve(
 );
 
 if (!existsSync(python)) {
-  console.error('CPU service is not installed. Run: npm run setup:cpu');
+  console.error('CPU service is not installed. Run: bun run setup:cpu');
   process.exit(1);
 }
 
 const children = [
-  spawn(python, ['server/dhvaani_server.py'], { cwd: root, stdio: 'inherit' }),
-  spawn(process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm', ['dev'], {
+  Bun.spawn([python, 'server/dhvaani_server.py'], {
     cwd: root,
-    stdio: 'inherit',
+    stdin: 'inherit',
+    stdout: 'inherit',
+    stderr: 'inherit',
   }),
+  Bun.spawn(
+    [
+      process.execPath,
+      'run',
+      'dev',
+      ...(process.env.VAANI_OPEN_BROWSER === '1'
+        ? ['--', '--open', '/#workspace']
+        : []),
+    ],
+    {
+      cwd: root,
+      stdin: 'inherit',
+      stdout: 'inherit',
+      stderr: 'inherit',
+    },
+  ),
 ];
 
 const stop = () => children.forEach((child) => child.kill());
 process.on('SIGINT', stop);
 process.on('SIGTERM', stop);
 children.forEach((child) =>
-  child.on('exit', (code) => code && process.exit(code)),
+  child.exited.then((code) => code && process.exit(code)),
 );

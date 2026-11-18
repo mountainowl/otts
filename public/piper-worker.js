@@ -7,6 +7,7 @@ self.importScripts(
 
 let enginePromise;
 
+// One worker owns both phonemization and synthesis so neither blocks the UI.
 self.addEventListener('message', async ({ data }) => {
   const { action, id } = data;
   try {

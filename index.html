@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="A private, offline multilingual text-to-speech workspace."
+    />
+    <title>Vaani — Local text to speech</title>
+  </head>
+  <body
+    class="bg-[#f4f4f3] font-[ui-sans-serif,_system-ui,_-apple-system,_BlinkMacSystemFont,_'Segoe_UI',_sans-serif] text-xs text-[#1b1a19] antialiased [&_header]:h-14 [&_header>div>span]:hidden [&_main]:min-h-[calc(100vh-56px)] [&_main>section]:py-5 lg:[&_main>section]:px-8 [&_.font-black]:font-semibold [&_.font-bold]:font-medium [&_.text-3xl]:text-base [&_.text-2xl]:text-sm [&_.text-xl]:text-sm [&_.text-lg]:text-xs [&_.text-sm]:text-xs [&_.text-xs]:text-[11px] [&_h1]:text-sm [&_h2]:text-sm [&_h3]:text-xs [&_strong]:font-medium [&_[data-field=title]]:text-base [&_button_svg]:size-3.5 [&_a_svg]:size-3.5 [&_button]:text-[11px] [&_input]:text-xs [&_select]:text-xs [&_textarea]:text-xs [&_textarea]:leading-5 [&_label:has(select)]:relative [&_label:has(select)]:after:pointer-events-none [&_label:has(select)]:after:absolute [&_label:has(select)]:after:right-3.5 [&_label:has(select)]:after:bottom-[0.58rem] [&_label:has(select)]:after:text-[11px] [&_label:has(select)]:after:text-stone-500 [&_label:has(select)]:after:content-['⌄'] [&_select]:cursor-pointer [&_select]:appearance-none [&_select]:pr-9 [&_select]:font-normal [&_select]:focus:ring-2"
+  >
+    <div id="app"></div>
+    <script src="/tts/vendor/ort/ort.wasm.min.js"></script>
+    <script src="/tts/vendor/phonemize/piper_phonemize.js"></script>
+    <script src="/tts/piper-browser.js"></script>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,55 @@
+{
+  "contract": "Offline multilingual text-to-speech workspace for organizing scripts by project and replaying Hindi with a bundled neural voice or other languages with installed system voices. Primary hierarchy: projects, conversations, script metadata, and a flat Voice Studio containing one transport toggle plus a seekable, segment-selectable waveform. Visual direction: crisp graphite, coral, and sand with restrained corner radii and Tailwind utility styling.",
+  "targetViewports": ["1440x892", "500x844"],
+  "accessibility": {
+    "status": "pass",
+    "evidence": "Browser accessibility inspection found named form controls, headings, navigation regions, visible focus styles, a skip link, status announcements, and 42px primary touch targets. The settings dialog exposes seven labeled sliders with English and Hindi descriptions, including initial pause. Reduced-motion rules are present."
+  },
+  "responsive": {
+    "status": "pass",
+    "evidence": "The 1440px layout retains a fixed project rail and wide editor; the 500px layout stacks navigation, metadata, controls, and the audio player without horizontal overflow."
+  },
+  "contentStates": {
+    "loading": {
+      "status": "not-applicable",
+      "reason": "All workspace data and installed voice discovery are local and render synchronously without a blocking loading state."
+    },
+    "empty": {
+      "status": "pass",
+      "evidence": "Created a local project with zero conversations; the rendered state showed a Create your first conversation heading, explanation, and Add conversation action."
+    },
+    "error": {
+      "status": "pass",
+      "evidence": "Unsupported speech and playback error paths provide specific browser or alternate-voice recovery text while preserving locally saved content."
+    },
+    "partial": {
+      "status": "pass",
+      "evidence": "Hindi retains its bundled neural voice without a system voice. For other languages, the interface explains how to install a missing voice while preserving saved content."
+    },
+    "success": {
+      "status": "pass",
+      "evidence": "Kokoro-82M produced a local English WAV and rendered the WaveSurfer waveform, explicit seek bar, download link, and Play/Stop toggle. Hindi Kokoro uses a bundled Hindi voice and local espeak-ng phonemization; Priyamvada remains available as a fallback."
+    },
+    "permission": {
+      "status": "not-applicable",
+      "reason": "Browser speech synthesis and localStorage require no browser permission prompt."
+    }
+  },
+  "renderedEvidence": [
+    {
+      "viewport": "1440x892",
+      "artifact": "desktop-1440x892.png",
+      "observation": "The graphite Voice Studio groups the single transport and flat coral waveform without nested cards; project navigation, Hindi metadata, and controls remain legible without overlap."
+    },
+    {
+      "viewport": "500x844",
+      "artifact": "mobile-500x844.png",
+      "observation": "The graphite, coral, and sand hierarchy remains clear as the mobile page stacks into one readable flow; the waveform, Hindi text, and controls fit without horizontal overflow."
+    },
+    {
+      "viewport": "1440x892",
+      "artifact": "settings-1440x892.png",
+      "observation": "The sharper settings modal presents seven grouped tuning controls, including configurable initial pause, bilingual guidance, current values, reset, close, and done actions without obscuring labels."
+    }
+  ]
+}

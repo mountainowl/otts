@@ -1,6 +1,6 @@
 # TTS
 
-An offline-first multilingual text-to-speech workspace. Projects and conversations are saved in the browser. Kokoro and Priyamvada run in CPU-only browser workers. DhVaani adds local CPU synthesis for Indian languages through a localhost service. No text is sent to a remote service.
+An offline-first multilingual text-to-speech workspace. No text is sent to a remote service.
 
 ## Run locally
 
@@ -10,7 +10,7 @@ pnpm setup:cpu
 pnpm dev:cpu
 ```
 
-Open the local URL shown by Vite. The included Hindi validation file is at `public/audio/hindi-sample.wav`.
+Open the local URL shown by Vite (http://127.0.0.1:5176). The included Hindi validation file is at `public/audio/hindi-sample.wav`.
 
 ### Windows
 

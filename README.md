@@ -1,4 +1,4 @@
-# Sanju TTS
+# TTS
 
 An offline-first multilingual text-to-speech workspace. Projects and conversations are saved in the browser. Kokoro and Priyamvada run in CPU-only browser workers. DhVaani adds local CPU synthesis for Indian languages through a localhost service. No text is sent to a remote service.
 

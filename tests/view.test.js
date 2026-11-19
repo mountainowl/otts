@@ -50,6 +50,10 @@ describe('audio workspace view', () => {
     expect(html.match(/data-action="insert-performance"/g)).toHaveLength(6);
     expect(html).toContain('data-markup="[pause=500]"');
     expect(html).toContain('data-pause-help');
+    expect(html).toContain('data-voice-search');
+    expect(html).toContain('data-voice-language="hi" checked');
+    expect(html).toContain('data-voice-language="en" checked');
+    expect(html).toContain('data-voice-empty');
     expect(html).toContain('data-ui-language');
     expect(html).toContain('<option value="en" selected>English</option>');
     expect(html).not.toContain('data-action="stop"');

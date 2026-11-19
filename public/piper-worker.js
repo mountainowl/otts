@@ -5,6 +5,13 @@ self.importScripts(
   './tts/piper-browser.js',
 );
 
+// Avoid saturating an i5-class CPU; synthesis stays off the browser UI thread.
+if (self.ort?.env?.wasm)
+  self.ort.env.wasm.numThreads = Math.min(
+    2,
+    Math.max(1, self.navigator?.hardwareConcurrency ?? 1),
+  );
+
 let enginePromise;
 
 // One worker owns both phonemization and synthesis so neither blocks the UI.

@@ -5,6 +5,7 @@ import { DEFAULT_TTS_SETTINGS } from './tts-settings.js';
 import { renderApp } from './view.js';
 import { WorkspaceStore } from './workspace-store.js';
 import { WaveformPlayer } from './waveform-player.js';
+import { matchesVoiceFilter } from './voice-filter.js';
 
 const UI_COPY = Object.freeze({
   Workspace: 'कार्यस्थान',
@@ -154,6 +155,8 @@ function applyLabelLanguage(root, mode) {
  * एक ही बार DOM इवेंट जोड़कर ऐप की स्थिति और दृश्य को नियंत्रित करता है।
  */
 export class VaaniApp {
+  #generationStartedAt = 0;
+  #generationTimer;
   #saveStatus = 'Saved locally';
   #speechRun = 0;
   #speaking = false;
@@ -185,7 +188,7 @@ export class VaaniApp {
     this.#waveform?.destroy();
     const conversation = this.store.activeConversation;
     const voices = conversation
-      ? this.speech.voicesFor(conversation.language)
+      ? this.speech.voiceCatalogFor(conversation.language)
       : [];
     this.root.innerHTML = renderApp({
       workspace: this.store.state,
@@ -224,19 +227,29 @@ export class VaaniApp {
         'Polishing speech…',
         'Loading Kokoro-82M locally…',
         'Synthesizing with Kokoro…',
+        'Loading DhVaani CPU model…',
+        'Generating natural speech on CPU…',
       ].includes(message)
     ) {
       const spinner = status.ownerDocument.createElement('span');
       spinner.className =
         'block size-4 animate-spin rounded-full border-2 border-white/25 border-t-[#ff9b82]';
       spinner.setAttribute('aria-hidden', 'true');
-      status.replaceChildren(spinner);
+      const label = status.ownerDocument.createElement('span');
+      label.dataset.progressLabel = '';
+      label.textContent = localizedText(message, this.store.state.uiLanguage);
+      const elapsed = status.ownerDocument.createElement('time');
+      elapsed.dataset.progressElapsed = '';
+      elapsed.className = 'tabular-nums text-stone-500';
+      status.dataset.busy = 'true';
+      status.replaceChildren(spinner, label, elapsed);
       status.setAttribute(
         'aria-label',
         localizedText(message, this.store.state.uiLanguage),
       );
       return;
     }
+    delete status.dataset.busy;
     status.removeAttribute('aria-label');
     status.textContent = [
       'Finished',
@@ -245,6 +258,25 @@ export class VaaniApp {
     ].includes(message)
       ? ''
       : localizedText(message, this.store.state.uiLanguage);
+  }
+
+  /** Keeps slow CPU generation visibly alive and cancelable. */
+  #startGenerationProgress() {
+    this.#generationStartedAt = performance.now();
+    clearInterval(this.#generationTimer);
+    this.#generationTimer = setInterval(() => {
+      const elapsed = this.root.querySelector('[data-progress-elapsed]');
+      if (!elapsed) return;
+      const seconds = Math.floor(
+        (performance.now() - this.#generationStartedAt) / 1_000,
+      );
+      elapsed.textContent = `${this.#formatTime(seconds)} elapsed`;
+    }, 1_000);
+  }
+
+  #stopGenerationProgress() {
+    clearInterval(this.#generationTimer);
+    this.#generationTimer = undefined;
   }
 
   #setTransportState(playing) {
@@ -296,8 +328,9 @@ export class VaaniApp {
     if (!conversation?.text || !voiceURI) return;
     const button = this.root.querySelector('[data-action="toggle-playback"]');
     const run = ++this.#speechRun;
-    this.#speaking = true;
-    button.disabled = true;
+    this.#setTransportState(true);
+    button.disabled = false;
+    this.#startGenerationProgress();
     try {
       for await (const event of this.speech.play({
         text: conversation.text,
@@ -308,7 +341,9 @@ export class VaaniApp {
         settings: this.store.state.ttsSettings,
       })) {
         if (run !== this.#speechRun) return;
-        if (event.message) this.#setStatus(event.message);
+        if (event.message) {
+          this.#setStatus(event.message);
+        }
         if (event.state === 'playing') {
           button.disabled = false;
           this.#setTransportState(true);
@@ -321,6 +356,7 @@ export class VaaniApp {
       if (run === this.#speechRun)
         this.#setStatus(`Speech generation failed — ${error.message}`);
     } finally {
+      this.#stopGenerationProgress();
       if (run === this.#speechRun) {
         if (!this.#waveform?.isPlaying) this.#setTransportState(false);
         button.disabled = false;
@@ -338,6 +374,7 @@ export class VaaniApp {
   }
 
   #invalidateGeneratedAudio() {
+    this.#stop();
     const waveform = this.root.querySelector('#waveform');
     this.#waveform?.destroy();
     this.#waveform = undefined;
@@ -409,6 +446,7 @@ export class VaaniApp {
     this.speech.stop();
     this.#speaking = false;
     this.#waveform?.stop();
+    this.#stopGenerationProgress();
     const play = this.root.querySelector('[data-action="toggle-playback"]');
     if (play) play.disabled = false;
     this.#setTransportState(false);
@@ -422,12 +460,17 @@ export class VaaniApp {
   }
 
   #select(change) {
+    this.#stop();
     this.speech.stop({ release: true });
     change();
     this.render();
   }
 
   #onInput(event) {
+    if (event.target.matches('[data-voice-search]')) {
+      this.#applyVoiceFilter();
+      return;
+    }
     if (event.target.id === 'audio-seek') {
       const seconds = Number(event.target.value);
       this.#waveform?.seek(seconds);
@@ -468,6 +511,10 @@ export class VaaniApp {
   }
 
   #onChange(event) {
+    if (event.target.matches('[data-voice-language]')) {
+      this.#applyVoiceFilter();
+      return;
+    }
     if (event.target.matches('[data-ui-language]')) {
       this.store.updateUiLanguage(event.target.value);
       this.render({ openSettings: true });
@@ -479,6 +526,34 @@ export class VaaniApp {
     this.store.updateConversation(field, event.target.value);
     this.store.save();
     this.render();
+  }
+
+  /** Applies voice search and language checkboxes without rerendering the app. */
+  #applyVoiceFilter() {
+    const query = this.root.querySelector('[data-voice-search]')?.value ?? '';
+    const filters = {
+      hindi: this.root.querySelector('[data-voice-language="hi"]')?.checked,
+      english: this.root.querySelector('[data-voice-language="en"]')?.checked,
+    };
+    const select = this.root.querySelector('[data-field="voiceURI"]');
+    if (!select) return;
+    let visible = 0;
+    for (const option of select.options) {
+      const matches = matchesVoiceFilter(
+        {
+          name: option.dataset.voiceName ?? '',
+          lang: option.dataset.voiceLang,
+        },
+        query,
+        filters,
+      );
+      option.hidden = !matches;
+      option.disabled = !matches;
+      if (matches) visible += 1;
+    }
+    this.root
+      .querySelector('[data-voice-empty]')
+      ?.classList.toggle('hidden', visible > 0);
   }
 
   #onSubmit(event) {

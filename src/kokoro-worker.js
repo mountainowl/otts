@@ -10,6 +10,11 @@ async function getEngine({ modelRoot, wasmRoot, voiceRoot }) {
     env.allowLocalModels = true;
     env.localModelPath = modelRoot;
     env.backends.onnx.wasm.wasmPaths = wasmRoot;
+    // Two inference threads leave CPU time for rendering on low-power laptops.
+    env.backends.onnx.wasm.numThreads = Math.min(
+      2,
+      Math.max(1, self.navigator?.hardwareConcurrency ?? 1),
+    );
 
     const cache = await caches.open('kokoro-voices');
     for (const voice of ['af_heart', 'hf_alpha']) {

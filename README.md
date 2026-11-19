@@ -35,7 +35,7 @@ The one-time setup requires internet access for Python packages. Afterwards, the
 
 - Hindi offers Kokoro Alpha, Priyamvada/Piper, and DhVaani 0.5.
 - English uses Kokoro Heart
--  Indian English can also use DhVaani. DhVaani covers the Indian languages listed in the application through an INT8 ONNX CPU service. 
+- Indian English can also use DhVaani. DhVaani covers the Indian languages listed in the application through an INT8 ONNX CPU service.
 
 ## Performance markup
 

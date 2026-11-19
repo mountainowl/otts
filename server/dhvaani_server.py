@@ -87,7 +87,8 @@ class DhVaaniHandler(BaseHTTPRequestHandler):
                     speed=speed,
                     seed=int(request.get("seed", 666)),
                     int8=True,
-                    threads=max(1, min(8, (os.cpu_count() or 2) // 2)),
+                    # Preserve browser responsiveness on low-power CPUs.
+                    threads=max(1, min(2, (os.cpu_count() or 2) // 2)),
                 )
                 audio = output_path.read_bytes()
             finally:

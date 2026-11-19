@@ -204,6 +204,28 @@ export class SpeechService {
     return [...dhvaani, ...voices];
   }
 
+  /**
+   * Returns a deduplicated Hindi/English catalog for the searchable picker.
+   * Voices relevant to the conversation language stay first, preserving the
+   * existing default while still letting users inspect both language groups.
+   */
+  voiceCatalogFor(language) {
+    const bilingualSystemVoices = this.systemVoices.filter((voice) =>
+      /^(hi|en)(-|_)/i.test(voice.lang),
+    );
+    const candidates = [
+      ...this.voicesFor(language),
+      ...LOCAL_VOICES,
+      ...bilingualSystemVoices,
+    ];
+    const unique = new Map();
+    for (const voice of candidates) {
+      const key = voice.voiceURI || `${voice.name}:${voice.lang}`;
+      if (!unique.has(key)) unique.set(key, voice);
+    }
+    return [...unique.values()];
+  }
+
   isNeural(voiceURI) {
     return LOCAL_VOICES.some((voice) => voice.voiceURI === voiceURI);
   }

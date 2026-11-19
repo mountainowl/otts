@@ -47,6 +47,30 @@ describe('Hindi neural voice', () => {
     expect(speech.isNeural(DHVAANI_VOICE.voiceURI)).toBe(true);
   });
 
+  it('deduplicates the bilingual searchable voice catalog', () => {
+    const duplicateEnglish = {
+      name: 'English duplicate',
+      lang: 'en-US',
+      voiceURI: 'system:duplicate',
+    };
+    const speech = new SpeechService({
+      synthesis: {
+        getVoices: () => [duplicateEnglish, duplicateEnglish],
+      },
+    });
+
+    const catalog = speech.voiceCatalogFor('hi-IN');
+    expect(
+      catalog.filter(({ voiceURI }) => voiceURI === 'system:duplicate'),
+    ).toHaveLength(1);
+    expect(catalog.map(({ voiceURI }) => voiceURI)).toEqual(
+      expect.arrayContaining([
+        KOKORO_HINDI_VOICE.voiceURI,
+        KOKORO_VOICE.voiceURI,
+      ]),
+    );
+  });
+
   it('prepends configurable silence to generated WAV files', async () => {
     const bytes = new Uint8Array(48);
     const view = new DataView(bytes.buffer);
